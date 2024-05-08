@@ -417,7 +417,7 @@ impl From<AccessConfig> for cosmrs::cosmwasm::AccessConfig {
     fn from(config: AccessConfig) -> Self {
         Self {
             permission: config.permission.into(),
-            address: config.account.into(),
+            addresses: vec![config.account.into()],
         }
     }
 }
@@ -426,7 +426,7 @@ impl From<cosmrs::cosmwasm::AccessConfig> for AccessConfig {
     fn from(config: cosmrs::cosmwasm::AccessConfig) -> Self {
         Self {
             permission: config.permission.into(),
-            account: config.address.into(),
+            account: config.addresses[0].clone().into(),
         }
     }
 }
@@ -435,7 +435,8 @@ impl From<AccessConfig> for ProtoAccessConfig {
     fn from(config: AccessConfig) -> Self {
         Self {
             permission: config.permission as i32,
-            address: config.account.into(),
+            addresses: vec![config.account.to_string()],
+            address: config.account.to_string(),
         }
     }
 }
@@ -509,6 +510,7 @@ impl From<ProtoAccessType> for AccessType {
             ProtoAccessType::Nobody => AccessType::Nobody,
             ProtoAccessType::OnlyAddress => AccessType::OnlyAddress,
             ProtoAccessType::Everybody => AccessType::Everybody,
+            ProtoAccessType::AnyOfAddresses => AccessType::Everybody
         }
     }
 }

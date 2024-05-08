@@ -60,6 +60,15 @@ pub enum ChainError {
     /// Cosmos gRPC client errors
     #[error(transparent)]
     GRPC(#[from] CosmosGRPCError),
+
+    /// Cosmos gRPC client errors
+    #[error(transparent)]
+    Encode(#[from] EncodeError),
+
+    #[error(transparent)]
+    Decode(#[from] DecodeError),
+
+    
 }
 
 impl ChainError {

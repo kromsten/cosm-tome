@@ -94,6 +94,8 @@ impl From<DenomMetadata> for Metadata {
             display: meta.display,
             name: meta.name,
             symbol: meta.symbol,
+            uri: String::default(),
+            uri_hash: String::default(),
         }
     }
 }
@@ -216,6 +218,7 @@ impl fmt::Display for SendRequest {
         write!(f, "-> {}", self.to)
     }
 }
+
 
 impl Msg for SendRequestProto {
     type Proto = MsgSend;

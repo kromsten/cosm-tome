@@ -5,7 +5,7 @@ use cosmrs::{
             GetLatestBlockResponse, GetLatestValidatorSetResponse, GetValidatorSetByHeightResponse,
             Validator as ProtoValidator,
         },
-        tendermint::types::{Block, BlockId},
+        tendermint::v0_34::types::{Block, BlockId},
     },
 };
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,7 @@ impl From<BlockResponse> for GetLatestBlockResponse {
         Self {
             block_id: Some(res.id),
             block: Some(res.block),
+            sdk_block: None
         }
     }
 }

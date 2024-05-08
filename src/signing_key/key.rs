@@ -1,8 +1,8 @@
-use cosmrs::bip32;
-use cosmrs::bip32::secp256k1::elliptic_curve::rand_core::OsRng;
 use cosmrs::crypto::{secp256k1, PublicKey};
 use cosmrs::tendermint::block::Height;
 use cosmrs::tx::{Body, SignDoc, SignerInfo};
+use bip32::secp256k1::elliptic_curve::rand_core::OsRng;
+use bip32;
 
 #[cfg(feature = "os_keyring")]
 use keyring::Entry;
@@ -162,7 +162,7 @@ fn mnemonic_to_signing_key(
 }
 
 fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, ChainError> {
-    secp256k1::SigningKey::from_bytes(bytes).map_err(ChainError::crypto)
+    secp256k1::SigningKey::from_slice(bytes).map_err(ChainError::crypto)
 }
 
 fn build_sign_doc(
@@ -178,7 +178,7 @@ fn build_sign_doc(
 
     let tx = Body::new(
         msgs.into_iter()
-            .map(|m| m.into_any())
+            .map(|m| m.to_any())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| ChainError::ProtoEncoding {
                 message: e.to_string(),

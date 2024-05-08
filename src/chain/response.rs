@@ -1,20 +1,20 @@
 use cosmrs::proto::{
     cosmos::base::abci::v1beta1::TxResponse as CosmosResponse,
-    tendermint::abci::{Event as ProtoEvent, EventAttribute},
+    tendermint::v0_34::abci::{Event as ProtoEvent, EventAttribute as EventAttribute},
 };
-use cosmrs::rpc::abci::{
-    tag::{Key, Tag as TendermintProtoTag, Value},
-    Code as TendermintCode, Event as TendermintEvent,
+
+use cosmrs::tendermint::abci::{
+    types::ExecTxResult as TxResult,
+    Code as TendermintCode, Event as TendermintEvent, EventAttribute as TendermintEventAttribute,
 };
 use cosmrs::rpc::endpoint::{
     abci_query::AbciQuery,
     broadcast::tx_async::Response as AsyncTendermintResponse,
-    broadcast::tx_commit::{Response as BlockingTendermintResponse, TxResult},
+    broadcast::tx_commit::Response as BlockingTendermintResponse,
     broadcast::tx_sync::Response as SyncTendermintResponse,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 use super::error::{ChainError, DeserializeError};
 
@@ -51,7 +51,7 @@ impl From<TxResult> for ChainResponse {
     fn from(res: TxResult) -> ChainResponse {
         ChainResponse {
             code: res.code.into(),
-            data: res.data.map(|d| d.into()),
+            data: Some(res.data.into()),
             log: res.log.to_string(),
         }
     }
@@ -157,13 +157,13 @@ impl From<BlockingTendermintResponse> for ChainTxResponse {
     fn from(res: BlockingTendermintResponse) -> Self {
         ChainTxResponse {
             res: ChainResponse {
-                code: res.deliver_tx.code.into(),
-                data: res.deliver_tx.data.map(|d| d.into()),
-                log: res.deliver_tx.log.to_string(),
+                code: res.tx_result.code.into(),
+                data: Some(res.tx_result.data.into()),
+                log: res.tx_result.log.to_string(),
             },
-            events: res.deliver_tx.events.into_iter().map(Into::into).collect(),
-            gas_used: res.deliver_tx.gas_used.into(),
-            gas_wanted: res.deliver_tx.gas_wanted.into(),
+            events: res.tx_result.events.into_iter().map(Into::into).collect(),
+            gas_used: res.tx_result.gas_used as u64,
+            gas_wanted: res.tx_result.gas_wanted as u64,
             tx_hash: res.hash.to_string(),
             height: res.height.into(),
         }
@@ -301,6 +301,62 @@ impl From<tonic::Code> for Code {
     }
 }
 
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
+pub struct Tag {
+    pub key: String,
+    pub value: String,
+}
+
+
+impl Into<Tag> for TendermintEventAttribute {
+    fn into(self) -> Tag {
+        Tag {
+            key: self.key,
+            value: self.value,
+        }
+    }
+}
+
+
+impl From<Tag> for EventAttribute {
+    fn from(tag: Tag) -> Self {
+        Self {
+            key: tag.key.into_bytes().into(),
+            value: tag.value.into_bytes().into(),
+            index: true,
+        }
+    }
+}
+
+impl TryFrom<Tag> for TendermintEventAttribute {
+    type Error = ChainError;
+
+    fn try_from(tag: Tag) -> Result<Self, Self::Error> {
+        Ok(Self {
+            key: tag.key,
+            value: tag.value,
+            index: true,
+        })
+    }
+}
+
+
+impl TryFrom<EventAttribute> for Tag {
+    type Error = ChainError;
+
+    fn try_from(attr: EventAttribute) -> Result<Self, Self::Error> {
+        Ok(Self {
+            key: String::from_utf8(attr.key.into()).map_err(|e| ChainError::ProtoDecoding {
+                message: e.to_string(),
+            })?,
+            value: String::from_utf8(attr.value.into()).map_err(|e| ChainError::ProtoDecoding {
+                message: e.to_string(),
+            })?,
+        })
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
 pub struct Event {
     pub type_str: String,
@@ -310,7 +366,7 @@ pub struct Event {
 impl From<TendermintEvent> for Event {
     fn from(e: TendermintEvent) -> Self {
         Self {
-            type_str: e.type_str,
+            type_str: e.kind,
             attributes: e.attributes.into_iter().map(Into::into).collect(),
         }
     }
@@ -321,7 +377,7 @@ impl TryFrom<Event> for TendermintEvent {
 
     fn try_from(e: Event) -> Result<Self, Self::Error> {
         Ok(Self {
-            type_str: e.type_str,
+            kind: e.type_str,
             attributes: e
                 .attributes
                 .into_iter()
@@ -352,56 +408,5 @@ impl From<Event> for ProtoEvent {
             r#type: e.type_str,
             attributes: e.attributes.into_iter().map(Into::into).collect(),
         }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, Eq, PartialEq, Hash)]
-pub struct Tag {
-    pub key: String,
-    pub value: String,
-}
-
-impl From<TendermintProtoTag> for Tag {
-    fn from(tag: TendermintProtoTag) -> Self {
-        Self {
-            key: tag.key.to_string(),
-            value: tag.value.to_string(),
-        }
-    }
-}
-
-impl TryFrom<Tag> for TendermintProtoTag {
-    type Error = ChainError;
-
-    fn try_from(tag: Tag) -> Result<Self, Self::Error> {
-        Ok(Self {
-            key: Key::from_str(&tag.key)?,
-            value: Value::from_str(&tag.value)?,
-        })
-    }
-}
-
-impl From<Tag> for EventAttribute {
-    fn from(tag: Tag) -> Self {
-        Self {
-            key: tag.key.into_bytes().into(),
-            value: tag.value.into_bytes().into(),
-            index: true,
-        }
-    }
-}
-
-impl TryFrom<EventAttribute> for Tag {
-    type Error = ChainError;
-
-    fn try_from(attr: EventAttribute) -> Result<Self, Self::Error> {
-        Ok(Self {
-            key: String::from_utf8(attr.key.into()).map_err(|e| ChainError::ProtoDecoding {
-                message: e.to_string(),
-            })?,
-            value: String::from_utf8(attr.value.into()).map_err(|e| ChainError::ProtoDecoding {
-                message: e.to_string(),
-            })?,
-        })
     }
 }

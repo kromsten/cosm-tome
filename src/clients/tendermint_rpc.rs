@@ -41,7 +41,7 @@ impl CosmosClient for TendermintRPC {
 
         let res = self
             .client
-            .abci_query(Some(path.parse()?), bytes, None, false)
+            .abci_query(Some(path.parse().unwrap()), bytes, None, false)
             .await?;
 
         if res.code.is_err() {
@@ -66,7 +66,7 @@ impl CosmosClient for TendermintRPC {
         let res = self
             .client
             .abci_query(
-                Some("/cosmos.tx.v1beta1.Service/Simulate".parse()?),
+                Some("/cosmos.tx.v1beta1.Service/Simulate".parse().unwrap()),
                 bytes,
                 None,
                 false,
@@ -93,12 +93,12 @@ impl CosmosClient for TendermintRPC {
         let res: AsyncChainTxResponse = match mode {
             BroadcastMode::Sync => self
                 .client
-                .broadcast_tx_sync(tx.to_bytes()?.into())
+                .broadcast_tx_sync(tx.to_bytes()?)
                 .await?
                 .into(),
             BroadcastMode::Async => self
                 .client
-                .broadcast_tx_async(tx.to_bytes()?.into())
+                .broadcast_tx_async(tx.to_bytes()?)
                 .await?
                 .into(),
         };
@@ -113,17 +113,17 @@ impl CosmosClient for TendermintRPC {
     async fn broadcast_tx_block(&self, tx: &RawTx) -> Result<ChainTxResponse, ChainError> {
         let res = self
             .client
-            .broadcast_tx_commit(tx.to_bytes()?.into())
+            .broadcast_tx_commit(tx.to_bytes()?)
             .await?;
 
         if res.check_tx.code.is_err() {
             return Err(ChainError::CosmosSdk {
-                res: res.check_tx.into(),
+                res: res.tx_result.into(),
             });
         }
-        if res.deliver_tx.code.is_err() {
+        if res.tx_result.code.is_err() {
             return Err(ChainError::CosmosSdk {
-                res: res.deliver_tx.into(),
+                res: res.tx_result.into(),
             });
         }
 
