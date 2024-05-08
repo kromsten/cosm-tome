@@ -44,7 +44,7 @@ impl<T: CosmosClient> CosmTome<T> {
     where
         I: IntoIterator<Item = SendRequest>,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key.to_addr(&self.cfg.prefix)?;
 
         let msgs = reqs
             .into_iter()

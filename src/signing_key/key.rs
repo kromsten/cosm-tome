@@ -99,7 +99,7 @@ impl SigningKey {
         }
     }
 
-    pub async fn to_addr(&self, prefix: &str) -> Result<Address, ChainError> {
+    pub fn to_addr(&self, prefix: &str) -> Result<Address, ChainError> {
         let account = self
             .public_key()?
             .account_id(prefix)

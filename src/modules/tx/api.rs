@@ -33,7 +33,7 @@ impl<T: CosmosClient> CosmTome<T> {
         let sender_addr = if let Some(sender_addr) = sender_addr {
             sender_addr
         } else {
-            key.to_addr(&self.cfg.prefix).await?
+            key.to_addr(&self.cfg.prefix)?
         };
 
         let timeout_height = tx_options.timeout_height.unwrap_or_default();

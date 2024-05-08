@@ -42,7 +42,7 @@ impl<T: CosmosClient> CosmTome<T> {
     where
         I: IntoIterator<Item = StoreCodeRequest>,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key.to_addr(&self.cfg.prefix)?;
 
         let msgs = reqs
             .into_iter()
@@ -94,7 +94,7 @@ impl<T: CosmosClient> CosmTome<T> {
         S: Serialize,
         I: IntoIterator<Item = InstantiateRequest<S>>,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key.to_addr(&self.cfg.prefix)?;
 
         let msgs = reqs
             .into_iter()
@@ -147,7 +147,7 @@ impl<T: CosmosClient> CosmTome<T> {
         S: Serialize,
         I: IntoIterator<Item = ExecRequest<S>>,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key.to_addr(&self.cfg.prefix)?;
 
         let msgs = reqs
             .into_iter()
@@ -208,7 +208,7 @@ impl<T: CosmosClient> CosmTome<T> {
         S: Serialize,
         I: IntoIterator<Item = MigrateRequest<S>>,
     {
-        let sender_addr = key.to_addr(&self.cfg.prefix).await?;
+        let sender_addr = key.to_addr(&self.cfg.prefix)?;
 
         let msgs = reqs
             .into_iter()
