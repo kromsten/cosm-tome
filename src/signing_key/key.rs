@@ -28,7 +28,7 @@ pub struct SigningKey {
 }
 
 impl SigningKey {
-    pub async fn public_key(&self) -> Result<PublicKey, ChainError> {
+    pub fn public_key(&self) -> Result<PublicKey, ChainError> {
         match &self.key {
             Key::Raw(bytes) => {
                 let key = raw_bytes_to_signing_key(bytes)?;
@@ -59,7 +59,7 @@ impl SigningKey {
         cfg: &ChainConfig,
     ) -> Result<RawTx, ChainError> {
         let public_key = if account.pubkey.is_none() {
-            Some(self.public_key().await?)
+            Some(self.public_key()?)
         } else {
             account.pubkey
         };
@@ -101,8 +101,7 @@ impl SigningKey {
 
     pub async fn to_addr(&self, prefix: &str) -> Result<Address, ChainError> {
         let account = self
-            .public_key()
-            .await?
+            .public_key()?
             .account_id(prefix)
             .map_err(ChainError::crypto)?;
         Ok(account.into())
@@ -144,7 +143,7 @@ pub struct KeyringParams {
     pub key_name: String,
 }
 
-fn mnemonic_to_signing_key(
+pub fn mnemonic_to_signing_key(
     mnemonic: &str,
     derivation_path: &str,
 ) -> Result<secp256k1::SigningKey, ChainError> {
@@ -165,7 +164,7 @@ fn raw_bytes_to_signing_key(bytes: &[u8]) -> Result<secp256k1::SigningKey, Chain
     secp256k1::SigningKey::from_slice(bytes).map_err(ChainError::crypto)
 }
 
-fn build_sign_doc(
+pub fn build_sign_doc(
     msgs: Vec<impl Msg>,
     timeout_height: u64,
     memo: &str,
